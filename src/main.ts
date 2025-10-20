@@ -217,6 +217,197 @@ async function sadisappointedGesture() {
   });
 }
 
+async function BigSmile() {
+  const myHeaders = new Headers();
+  myHeaders.append("accept", "application/json");
+  return fetch(`http://${FURHATURI}/furhat/gesture?blocking=false`, {
+    method: "POST",
+    headers: myHeaders,
+    body: JSON.stringify({
+      name: "BigSmile",
+      frames: [
+      {
+        time: [0.8],
+        persist: true,
+        params: {
+          "BROW_UP_LEFT": 1,
+          "BROW_UP_RIGHT": 1,
+          "SMILE_OPEN": 0.4,
+          "SMILE_CLOSED": 0.7
+        }
+      },
+      {
+        time:[0.96],
+        persist: false,
+        params: {
+          "reset": true
+        }
+      }
+      ],
+      class: "furhatos.gestures.Gesture",
+    }),
+  });
+}
+
+async function Happy() {
+  const myHeaders = new Headers();
+  myHeaders.append("accept", "application/json");
+  return fetch(`http://${FURHATURI}/furhat/gesture?blocking=false`, {
+    method: "POST",
+    headers: myHeaders,
+    body: JSON.stringify({
+      name: "Happy",
+      frames: [
+        {
+          time: [0.5],
+          persist: true,
+          params: {
+            "SMILE_OPEN": 0.6,
+            "BROW_UP_LEFT": 0.8,
+            "BROW_UP_RIGHT": 0.9,
+          },
+        },
+        {
+          time: [0.9],
+          persist: false,
+          params: { reset: true },
+        },
+      ],
+      class: "furhatos.gestures.Gesture",
+    }),
+  });
+}
+
+
+async function GazeAway() {
+  const myHeaders = new Headers();
+  myHeaders.append("accept", "application/json");
+
+  return fetch(`http://${FURHATURI}/furhat/gesture?blocking=false`, {
+    method: "POST",
+    headers: myHeaders,
+    body: JSON.stringify({
+      name: "GazeAway",
+      frames: [
+        {
+          time: [0.2],
+          params: {
+            "GAZE_PAN": 20,  // look slightly to the right
+            "GAZE_TILT": 5,  // a small upward tilt
+          },
+        },
+        {
+          time: [0.8],
+          params: {
+            "GAZE_PAN": 0,   // return to neutral
+            "GAZE_TILT": 0,
+          },
+        },
+        {
+          time: [1.0],
+          persist: false,
+          params: { "reset": true },
+        },
+      ],
+      class: "furhatos.gestures.Gesture",
+    }),
+  });
+}
+
+async function DoubleNod() {
+  const myHeaders = new Headers();
+  myHeaders.append("accept", "application/json");
+
+  return fetch(`http://${FURHATURI}/furhat/gesture?blocking=false`, {
+    method: "POST",
+    headers: myHeaders,
+    body: JSON.stringify({
+      name: "DoubleNod",
+      frames: [
+        { 
+          time: [0.9], 
+          persist: true, 
+          params: {
+            NECK_TILT: 10.0,  //tilt down
+          }
+        },
+        {
+          //Reset to neutral
+          time: [1.0],
+          persist: false,
+          params: { reset: true },
+        },
+        { 
+          time: [0.9], 
+          persist: true, 
+          params: {
+            SMILE_CLOSED: 0.7,
+            NECK_TILT: 8.0,  //tilt down
+          }
+        },
+        {
+          //Holding the gesture
+          time: [0.6],
+          persist: true,
+          params: {},
+        },
+        {
+          //Reset to neutral
+          time: [1.0],
+          persist: false,
+          params: { reset: true },
+        },
+      ],
+      class: "furhatos.gestures.Gesture",
+    }),
+  });
+}
+
+
+async function Kissing() {
+  const myHeaders = new Headers();
+  myHeaders.append("accept", "application/json");
+
+  return fetch(`http://${FURHATURI}/furhat/gesture?blocking=false`, {
+    method: "POST",
+    headers: myHeaders,
+    body: JSON.stringify({
+      name: "Kissing",
+      frames: [
+        {
+        time: [0.8],
+        persist: true,
+        params: {
+          SMILE_CLOSED: 0.4,  // closes corners of mouth slightly (U shape)
+          //"SMILE_OPEN": 0.0,    // no open smile
+          PHONE_B_M_P: 0.3,
+          PHONE_W: 0.5,
+          //PHONE_OH: 0.3,
+          PHONE_OOH_Q: 1.0,
+          BROW_UP_LEFT: 0.1,  // subtle facial liveliness
+          BROW_UP_RIGHT: 0.1,
+        },
+      },
+      {
+          //Holding the gesture
+          time: [1.0],
+          persist: true,
+          params: {},
+        },
+      // Relax back to neutral
+      {
+        time: [1.2],
+        persist: false,
+        params: {
+          "reset": true,
+        },
+      },
+      ],
+      class: "furhatos.gestures.Gesture",
+    }),
+  });
+}
+
 async function fhGesture(text: string) {
   const myHeaders = new Headers();
   myHeaders.append("accept", "application/json");
@@ -243,8 +434,31 @@ async function fhListen() {
     .then((value) => JSON.parse(new TextDecoder().decode(value)).message);
 }
 
+// This function defines some stop words that the user may say when trying to end the conversation.
+//Good to know: this function isn't async because guards must run synchronously.
+// They're evaluated immediately when a transition is triggered, so they can't just
+// wait for a Promise, otherwise the machine wouldn't know which path to take in time.
+function shouldEndConversation(input: string): boolean {
+  const stopWords = ["stop", "bye", "goodbye", "exit", "quit", "see you", "i have to go", "i actually have to go", 
+    "i need to run", "i need to leave"];
+  const normalized = input.toLowerCase();
+  return stopWords.some(word => normalized.includes(word));
+}
+
+// This function selects a random gesture from the ones defined above
+// so that Furhat can use a different one everytime it speaks the LLM response (fhLLMSpeak).
+async function selectRandomGesture() {
+  const gestures = [BigSmile, Happy, DoubleNod, GazeAway];
+  const randomGesture = gestures[Math.floor(Math.random() * gestures.length)];
+  console.log(randomGesture)
+  randomGesture();
+}
+
 
 const dmMachine = setup({
+  guards: {
+    userWantsToEnd: ({ context }) => shouldEndConversation(context.userInput),
+  },
   actors: {
     fhVoice: fromPromise<any, null>(async () => {
       return fhVoice("en-US-EchoMultilingualNeural");
@@ -255,29 +469,11 @@ const dmMachine = setup({
     fhL: fromPromise<any, null>(async () => {
      return fhListen();
     }),
-    //fhGesture: fromPromise<any, null>(async () => {
-    //  return newGesture();
-    //}),
-    fhConfused: fromPromise<any, null>(async () => {
-      return Promise.all([
-        fhSay("Wait...! Where's the cinnamon bun I just left here?"),
-        confusedGesture()
-      ])
-    }),
-    fhOMG: fromPromise<any, null>(async () => {
-      return Promise.all([
-        fhSay("Oh my god! Did you eat it?"),
-        omgGesture()
-      ])
-    }),
-    fhSadisappointed: fromPromise<any, null>(async () => {
-      return Promise.all([
-        //fhSound(`https://github.com/guscarrian/xstate-furhat-starter/raw/refs/heads/lab3/src/sad_violin.wav`),
-        //fhSound(`https://raw.githubusercontent.com/guscarrian/xstate-furhat-starter/lab3/src/sad_violin.wav`),
-        fhSound(`https://raw.githubusercontent.com/guscarrian/xstate-furhat-starter/lab3/src/SadViolin.wav`),
 
-        //https://github.dev/guscarrian/xstate-furhat-starter/blob/588bd84a4a0b78e2e14fa8d9499ab96c5fd1e9bc/src/SadViolin.wav
-        sadisappointedGesture()
+    fhKissing: fromPromise<any, null>(async () => {
+      return Promise.all([
+        fhSound(`https://raw.githubusercontent.com/guscarrian/expressive_furhat/main/src/kiss-sound-effect.wav`),
+        Kissing()
       ])
     }),
     fhTalk: fromPromise<any, string>(async (input) => {
@@ -290,17 +486,6 @@ const dmMachine = setup({
       return fhGetUser();
     }),
 
-    //chatbotActor: fromPromise<any, Message[]>((input) => {
-    //  const body = {
-    //    model: "llama3.1",
-    //    stream: false,
-    //    messages: input.input,
-    //  };
-    //  return fetch("http://localhost:11434/api/chat", {
-    //    method: "POST",
-    //    body : JSON.stringify(body),
-    //  }).then((response) => response.json());
-    //}),
 
     //working one
     //LLMActor: fromPromise<any, string>(async ({ input }) => {
@@ -344,8 +529,17 @@ const dmMachine = setup({
     }),
 
     fhLLMSpeak: fromPromise<any, string>(async ({ input }) => {
+      selectRandomGesture(); //running a random gesture in parallel
       return fhSay(input);
     }),
+
+    fhTestGesture: fromPromise<any, null>(async () => {
+      //return BigSmile()
+      //return Happy()
+      //return GazeAway()
+      //return DoubleNod()
+      return Kissing()
+      }),
 
 
   },
@@ -360,6 +554,21 @@ const dmMachine = setup({
   initial: "Start",
   states: {
     Start: { after: { 1000: "GetUser" } },
+    //Start: { after: { 1000: "TestGesture" } },
+    TestGesture: {
+      invoke: {
+        src: "fhTestGesture",
+        input: null,
+        onDone: {
+          target: "Start",
+          actions: ({ event }) => console.log(event.output),
+        },
+        onError: {
+          target: "Fail",
+          actions: ({ event }) => console.error(event),
+        }
+      },
+    },
     GetUser: {
       invoke: {
         src: "fhGetUser",
@@ -484,7 +693,15 @@ const dmMachine = setup({
         input: ({ context }) => ({
           messages: context.messages,
         }),
-        onDone: {
+        onDone: [
+          {
+            guard: "userWantsToEnd",
+            target: "Goodbye",
+            actions: assign({
+              userInput: ({ event }) => event.output,
+            }),
+          },
+          {
           target: "LLMSpeaks",
           actions: assign({
             llmResponse: ({ event }) => event.output,
@@ -495,7 +712,7 @@ const dmMachine = setup({
               },
             ], //].slice(-10),
           }),
-        },
+          }],
         onError: {
           target: "Fail",
           actions: ({ event }) => console.error(event),
@@ -509,6 +726,7 @@ const dmMachine = setup({
         onDone: {
           target: "Listen",
           actions: ({ event }) => {console.log("LLM says:", event.output)},
+          //actions: ({ event }) => event.output,
         },
         onError: {
           target: "Fail",
@@ -516,9 +734,37 @@ const dmMachine = setup({
         }
       }
     },
-    SaDisappoined: {
+    Fail: {
+      id: "Fail",
       invoke: {
-        src: "fhSadisappointed",
+        src: "fhTalk",
+        input: "Something went wrong!",
+        onDone: {
+          target: "Listen",
+          actions: ({ event }) => console.log(event.output),
+        },
+        onError: {
+          target: "Fail",
+          actions: ({ event }) => console.error(event),
+        },
+      },
+    },
+    Goodbye: {
+      invoke: {
+        src: "fhLLMSpeak",
+        input: "Sure! I had a great time talking to you. Come back anytime! Bye bye! Puss puss!",
+        onDone: {
+          target: "Kiss",
+        },
+        onError: {
+          target: "Fail",
+          actions: ({ event }) => console.error(event),
+        },
+      },
+    },
+    Kiss: {
+      invoke: {
+        src: "fhKissing",
         input: null,
         onDone: [
           {
@@ -530,22 +776,6 @@ const dmMachine = setup({
           actions: ({ event }) => console.error(event),
         },
       }
-    },
-    Fail: {
-      id: "Fail",
-      invoke: {
-        src: "fhTalk",
-        input: "Something went wrong!",
-        //input: null,
-        onDone: {
-          target: "Listen",
-          actions: ({ event }) => console.log(event.output),
-        },
-        onError: {
-          target: "Fail",
-          actions: ({ event }) => console.error(event),
-        },
-      },
     },
     End: {
       entry: ({ event }) => console.log("End of the conversation", event.output),
