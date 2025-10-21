@@ -472,7 +472,8 @@ const dmMachine = setup({
 
     fhKissing: fromPromise<any, null>(async () => {
       return Promise.all([
-        fhSound(`https://raw.githubusercontent.com/guscarrian/expressive_furhat/main/src/kiss-sound-effect.wav`),
+        //fhSound(`https://github.com/guscarrian/expressive_furhat/raw/refs/heads/main/src/kiss-sound-effect.wav`),
+        fhSound("https://raw.githubusercontent.com/guscarrian/expressive_furhat/main/src/kiss-sound-effect.wav"),
         Kissing()
       ])
     }),
