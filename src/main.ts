@@ -2,6 +2,8 @@ import { setup, createActor, fromPromise, assign } from "xstate";
 
 const FURHATURI = "127.0.0.1:54321";
 
+const gestureList = ["BigSmile", "Happy", "sadisappointedGesture", "omgGesture", "confusedGesture"];
+
 async function fhVoice(name: string) {
   const myHeaders = new Headers();
   myHeaders.append("accept", "application/json");
@@ -472,8 +474,9 @@ const dmMachine = setup({
 
     fhKissing: fromPromise<any, null>(async () => {
       return Promise.all([
-        //fhSound(`https://github.com/guscarrian/expressive_furhat/raw/refs/heads/main/src/kiss-sound-effect.wav`),
-        fhSound("https://raw.githubusercontent.com/guscarrian/expressive_furhat/main/src/kiss-sound-effect.wav"),
+        fhSay("Puss puss"),
+        fhSound(`https://raw.githubusercontent.com/guscarrian/xstate-furhat-starter/lab3/src/kiss-sound-effect.wav`),
+        fhSay("Puss puss"),
         Kissing()
       ])
     }),
@@ -487,53 +490,92 @@ const dmMachine = setup({
       return fhGetUser();
     }),
 
-
-    //working one
-    //LLMActor: fromPromise<any, string>(async ({ input }) => {
-    //  const body = {
-    //    model: "llama3.1",
-    //    stream: false,
-    //    messages: [
-    //      {
-    //        role: "user",
-    //        content: input,
-    //      },
-    //    ],
-    //  };
+    //working original
+    //LLMActor: fromPromise<any, { messages: { role: string; content: string }[] }>(
+    //  async ({ input }) => {
+    //    const body = {
+    //      model: "llama3.1",
+    //      stream: false,
+    //      messages: input.messages, //entire conversation
+    //    };
 //
-    //  const response = await fetch("http://localhost:11434/api/chat",{
-    //    method: "POST",
-    //    headers: { "Content-Type": "application/json" },
-    //    body : JSON.stringify(body),
-    //  });
+    //    const response = await fetch("http://localhost:11434/api/chat",{
+    //      method: "POST",
+    //      headers: { "Content-Type": "application/json" },
+    //      body : JSON.stringify(body),
+    //    });
 //
-    //  const data = await response.json();
-    //  return data.message?.content?.trim()
+    //    const data = await response.json();
+    //    return data.message?.content?.trim()
     //}),
 
-    LLMActor: fromPromise<any, { messages: { role: string; content: string }[] }>(
+    LLMActor: fromPromise<any, { messages: { role: string; content: string }[]; instructionsLLM: string }>(
       async ({ input }) => {
+        const gestureList = ["BigSmile", "Happy", "sadisappointedGesture", "omgGesture", "confusedGesture"];
+
+        const systemPrompt = {
+          role: "system",
+          content: input.instructionsLLM,
+        };
+
         const body = {
           model: "llama3.1",
           stream: false,
-          messages: input.messages, //entire conversation
+          messages: [systemPrompt, ...input.messages],
         };
 
-        const response = await fetch("http://localhost:11434/api/chat",{
+        const response = await fetch("http://localhost:11434/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body : JSON.stringify(body),
+          body: JSON.stringify(body),
         });
 
         const data = await response.json();
-        return data.message?.content?.trim()
+        const text = data.message?.content?.trim();
+
+        //Trting to parse the JSON, in case LLM adds whitespace or formatting
+        try {
+          const parsed = JSON.parse(text);
+          return parsed; // {response, gesture}
+        } catch (err) {
+          console.error("Failed to parse LLM JSON:", text);
+          // fallback
+          return {
+            response: text || "I'm not sure what to say.",
+            gesture: "BigSmile",
+          };
+        }
+      }
+    ),
+
+    // working original
+    //fhLLMSpeak: fromPromise<any, string>(async ({ input }) => {
+    //  selectRandomGesture(); //running a random gesture in parallel
+    //  return fhSay(input);
+    //}),
+
+
+    fhLLMSpeak: fromPromise<any, { response: string; gesture: string }>(async ({ input }) => {
+      const { response, gesture } = input;
+
+      // Gesture map for lookup
+      const gestureMap: Record<string, Function> = {
+        BigSmile,
+        Happy,
+        sadisappointedGesture,
+        omgGesture,
+        confusedGesture,
+      };
+
+      const gestureFn = gestureMap[gesture];
+      if (gestureFn) gestureFn(); // Run gesture asynchronously
+      else console.warn(`Unknown gesture: ${gesture}`);
+
+      return fhSay(response);
     }),
 
-    fhLLMSpeak: fromPromise<any, string>(async ({ input }) => {
-      selectRandomGesture(); //running a random gesture in parallel
-      return fhSay(input);
-    }),
 
+    //toy function to test the different gestures that I'm adding
     fhTestGesture: fromPromise<any, null>(async () => {
       //return BigSmile()
       //return Happy()
@@ -542,34 +584,48 @@ const dmMachine = setup({
       return Kissing()
       }),
 
-
   },
 }).createMachine({
   id: "root",
   context: {
     userInput: "",
     llmResponse: "",
-    intructionsLLM: "You are a conversation assistant and your job is to provide very brief chat-like responses.",
+    llmGesture: "",
+    //instructionsLLM: "You are a conversation assistant and your job is to provide very brief chat-like responses. You have to end your sentences by saying 'wow'. ",
+    instructionsLLM: `
+      You are an expressive AI assistant controlling a social robot. 
+      Given the conversation, respond naturally and choose ONE gesture from this list that best matches the emotional tone of your response: ${gestureList.join(", ")}.
+
+      Return ONLY a valid JSON object in this format:
+
+      {
+        "response": "<your natural language reply>",
+        "gesture": "<one of: ${gestureList.join(", ")}>"
+      }
+
+      Do not include explanation, markdown, or text outside the JSON.
+      `.trim(),
+      //Maybe: If unsure, default to "Happy"?
+
     messages: [], //to store the full chat history
   },
   initial: "Start",
   states: {
     Start: { after: { 1000: "GetUser" } },
-    //Start: { after: { 1000: "TestGesture" } },
-    TestGesture: {
-      invoke: {
-        src: "fhTestGesture",
-        input: null,
-        onDone: {
-          target: "Start",
-          actions: ({ event }) => console.log(event.output),
-        },
-        onError: {
-          target: "Fail",
-          actions: ({ event }) => console.error(event),
-        }
-      },
-    },
+    //TestGesture: {
+    //  invoke: {
+    //    src: "fhTestGesture",
+    //    input: null,
+    //    onDone: {
+    //      target: "Start",
+    //      actions: ({ event }) => console.log(event.output),
+    //    },
+    //    onError: {
+    //      target: "Fail",
+    //      actions: ({ event }) => console.error(event),
+    //    }
+    //  },
+    //},
     GetUser: {
       invoke: {
         src: "fhGetUser",
@@ -607,6 +663,7 @@ const dmMachine = setup({
           {
             role: "user",
             content: "Please, start the conversation with a friendly greeting. From now on, remember to keep your answers brief and concise."
+            //content: "Please, start the conversation with a friendly greeting. From now on, remember to keep your answers brief and concise."
           },
         ],
       }),
@@ -614,15 +671,17 @@ const dmMachine = setup({
         src: "LLMActor",
         input: ({ context }) => ({
           messages: context.messages, // sends system prompt only
+          instructionsLLM: context.instructionsLLM,
         }),
         onDone: {
           target: "LLMSpeaks",
           actions: assign({
-            llmResponse: ({ event }) => event.output,
+            llmResponse: ({ event }) => event.output.response,
+            llmGesture: ({ event }) => event.output.gesture,
             messages: ({ context, event }) => [
               ...context.messages, {
                 role: "assistant",
-                content: event.output
+                content: event.output.response
               },
             ], // Note: to avoid the request growing too large over time, we can cap the message history to the last 10 turns, for example --> ].slice(-10),
           }),
@@ -633,38 +692,6 @@ const dmMachine = setup({
         },
       },
     },
-    //Confused: {
-    //  invoke: {
-    //    src: "fhConfused",
-    //    input: null,
-    //    onDone: {
-    //      target: "DramaticPause",
-    //      actions: ({ event }) => console.log(event.output),
-    //    },
-    //    onError: {
-    //      target: "Fail",
-    //      actions: ({ event }) => console.error(event),
-    //    }
-    //  },
-    //},
-    //DramaticPause: {
-    //  after: { 900: "OMG" },
-    //},
-    //OMG: {
-    //  id: "OMG",
-    //  invoke: {
-    //    src: "fhOMG",
-    //    input: null,
-    //    onDone: {
-    //      target: "Listen",
-    //      actions: ({ event }) => console.log(event.output),
-    //    },
-    //    onError: {
-    //      target: "Fail",
-    //      actions: ({ event }) => console.error(event),
-    //    }
-    //  }
-    //},
     Listen: {
       id: "Listen",
       invoke: {
@@ -693,6 +720,7 @@ const dmMachine = setup({
         src: "LLMActor",
         input: ({ context }) => ({
           messages: context.messages,
+          instructionsLLM: context.instructionsLLM,
         }),
         onDone: [
           {
@@ -705,11 +733,20 @@ const dmMachine = setup({
           {
           target: "LLMSpeaks",
           actions: assign({
-            llmResponse: ({ event }) => event.output,
+            //llmResponse: ({ event }) => event.output.response,
+            //llmGesture: ({ event }) => event.output.gesture,
+            llmResponse: ({ event }) => {
+              console.log("LLM Response:", event.output.response);
+              return event.output.response;
+            },
+            llmGesture: ({ event }) => {
+              console.log("LLM Gesture:", event.output.gesture);
+              return event.output.gesture;
+            },
             messages: ({ context, event }) => [
               ...context.messages, {
                 role: "assistant",
-                content: event.output
+                content: event.output.response
               },
             ], //].slice(-10),
           }),
@@ -723,7 +760,10 @@ const dmMachine = setup({
     LLMSpeaks: {
       invoke: {
         src: "fhLLMSpeak",
-        input: ({ context }) => context.llmResponse,
+        input: ({ context }) => ({
+          response: context.llmResponse,
+          gesture: context.llmGesture,
+        }),
         onDone: {
           target: "Listen",
           actions: ({ event }) => {console.log("LLM says:", event.output)},
@@ -752,8 +792,9 @@ const dmMachine = setup({
     },
     Goodbye: {
       invoke: {
-        src: "fhLLMSpeak",
-        input: "Sure! I had a great time talking to you. Come back anytime! Bye bye! Puss puss!",
+        //src: "fhLLMSpeak",
+        src: "fhTalk",
+        input: "Alright! I had a great time talking to you. Come back anytime! Bye!",
         onDone: {
           target: "Kiss",
         },
