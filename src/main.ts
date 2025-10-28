@@ -4,6 +4,109 @@ const FURHATURI = "127.0.0.1:54321";
 
 const gestureList = ["BigSmile", "Happy", "sadisappointedGesture", "omgGesture", "confusedGesture"];
 
+// Gesture map -- this is a dictionary (object) that connects the string label the LLM
+//returns (ie. "Happy") to the actual function that performs that gesture on Furhat
+const gestureMap: Record<string, Function> = {
+  BigSmile,
+  Happy,
+  sadisappointedGesture,
+  omgGesture,
+  confusedGesture,
+};
+
+
+// List of Azure-compatible expressive voice styles
+const voiceStylesList = [
+  "cheerful",
+  "sad",
+  "angry",
+  "calm",
+  "friendly",
+  "empathetic",
+  "serious",
+  "excited",
+  "depressed",
+  "neutral"
+];
+
+//note: en-US-AriaNeural supports most voice styles
+// check example from Microsoft's docs: https://learn.microsoft.com/en-us/azure/ai-services/speech-service/speech-synthesis-markup-structure
+//https://learn.microsoft.com/en-us/azure/ai-services/speech-service/language-support?tabs=tts#voice-styles-and-roles
+const voiceStyles: Record<string, (text: string) => string> = {
+  cheerful: (text) => `
+    <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis"
+           xmlns:mstts="http://www.w3.org/2001/mstts"
+           xml:lang="en-US">
+      <voice name="en-US-AriaNeural">
+        <mstts:express-as style="cheerful">
+          <prosody rate="fast" pitch="+10%">
+            ${text}
+          </prosody>
+        </mstts:express-as>
+      </voice>
+    </speak>
+  `.trim(),
+
+  sad: (text) => `
+    <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis"
+           xmlns:mstts="http://www.w3.org/2001/mstts"
+           xml:lang="en-US">
+      <voice name="en-US-AriaNeural">
+        <mstts:express-as style="sad">
+          <prosody rate="slow" pitch="-10%">
+            ${text}
+          </prosody>
+        </mstts:express-as>
+      </voice>
+    </speak>
+  `.trim(),
+
+  calm: (text) => `
+    <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis"
+           xmlns:mstts="http://www.w3.org/2001/mstts"
+           xml:lang="en-US">
+      <voice name="en-US-AriaNeural">
+        <mstts:express-as style="calm">
+          <prosody rate="medium" pitch="0%">
+            ${text}
+          </prosody>
+        </mstts:express-as>
+      </voice>
+    </speak>
+  `.trim(),
+
+  angry: (text) => `
+    <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis"
+           xmlns:mstts="http://www.w3.org/2001/mstts"
+           xml:lang="en-US">
+      <voice name="en-US-AriaNeural">
+        <mstts:express-as style="angry">
+          <prosody rate="fast" pitch="-5%">
+            ${text}
+          </prosody>
+        </mstts:express-as>
+      </voice>
+    </speak>
+  `.trim(),
+
+  friendly: (text) => `
+    <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis"
+           xmlns:mstts="http://www.w3.org/2001/mstts"
+           xml:lang="en-US">
+      <voice name="en-US-AriaNeural">
+        <mstts:express-as style="friendly">
+          <prosody rate="medium" pitch="+5%">
+            ${text}
+          </prosody>
+        </mstts:express-as>
+      </voice>
+    </speak>
+  `.trim(),
+
+  neutral: (text) => `<speak>${text}</speak>`.trim(),
+};
+
+
 async function fhVoice(name: string) {
   const myHeaders = new Headers();
   myHeaders.append("accept", "application/json");
@@ -25,6 +128,21 @@ async function fhSay(text: string) {
     body: "",
   });
 }
+
+//async function fhSay(text: string, isSSML = false) {
+//  const myHeaders = new Headers();
+//  myHeaders.append("accept", "application/json");
+//  myHeaders.append("Content-Type", "application/json");
+//
+//  const payload = isSSML ? { ssml: text } : { text };
+//
+//  return fetch(`http://${FURHATURI}/furhat/say`, {
+//    method: "POST",
+//    headers: myHeaders,
+//    body: JSON.stringify(payload),
+//  });
+//}
+
 
 async function fhAttend() {
   const myHeaders = new Headers();
@@ -462,9 +580,9 @@ const dmMachine = setup({
     userWantsToEnd: ({ context }) => shouldEndConversation(context.userInput),
   },
   actors: {
-    fhVoice: fromPromise<any, null>(async () => {
-      return fhVoice("en-US-EchoMultilingualNeural");
-    }),
+    //fhVoice: fromPromise<any, null>(async () => {
+    //  return fhVoice("en-US-EchoMultilingualNeural");
+    //}),
     fhHello: fromPromise<any, null>(async () => {
       return fhSay("Hiii! How's it going?");
     }),
@@ -474,9 +592,9 @@ const dmMachine = setup({
 
     fhKissing: fromPromise<any, null>(async () => {
       return Promise.all([
-        fhSay("Puss puss"),
+        //fhSay("Puss puss"),
         fhSound(`https://raw.githubusercontent.com/guscarrian/xstate-furhat-starter/lab3/src/kiss-sound-effect.wav`),
-        fhSay("Puss puss"),
+        //fhSay("Puss puss"),
         Kissing()
       ])
     }),
@@ -498,20 +616,20 @@ const dmMachine = setup({
     //      stream: false,
     //      messages: input.messages, //entire conversation
     //    };
-//
+    //
     //    const response = await fetch("http://localhost:11434/api/chat",{
     //      method: "POST",
     //      headers: { "Content-Type": "application/json" },
     //      body : JSON.stringify(body),
     //    });
-//
+    //
     //    const data = await response.json();
     //    return data.message?.content?.trim()
     //}),
 
     LLMActor: fromPromise<any, { messages: { role: string; content: string }[]; instructionsLLM: string }>(
       async ({ input }) => {
-        const gestureList = ["BigSmile", "Happy", "sadisappointedGesture", "omgGesture", "confusedGesture"];
+        //const gestureList = ["BigSmile", "Happy", "sadisappointedGesture", "omgGesture", "confusedGesture"];
 
         const systemPrompt = {
           role: "system",
@@ -533,16 +651,17 @@ const dmMachine = setup({
         const data = await response.json();
         const text = data.message?.content?.trim();
 
-        //Trting to parse the JSON, in case LLM adds whitespace or formatting
+        //Trying to parse the JSON, in case LLM adds whitespace or formatting
         try {
           const parsed = JSON.parse(text);
-          return parsed; // {response, gesture}
+          return parsed; // {response, gesture, voiceStyle}
         } catch (err) {
           console.error("Failed to parse LLM JSON:", text);
           // fallback
           return {
             response: text || "I'm not sure what to say.",
             gesture: "BigSmile",
+            voiceStyle: "neutral",
           };
         }
       }
@@ -555,23 +674,60 @@ const dmMachine = setup({
     //}),
 
 
-    fhLLMSpeak: fromPromise<any, { response: string; gesture: string }>(async ({ input }) => {
-      const { response, gesture } = input;
+    fhLLMSpeak: fromPromise<any, { response: string; gesture: string; voiceStyle: string }>(async ({ input }) => {
+      const { response, gesture, voiceStyle } = input;
 
-      // Gesture map for lookup
-      const gestureMap: Record<string, Function> = {
-        BigSmile,
-        Happy,
-        sadisappointedGesture,
-        omgGesture,
-        confusedGesture,
-      };
+      console.log("LLM output:");
+      console.log("Response:", response);
+      console.log("Gesture:", gesture);
+      console.log("Voice style:", voiceStyle);
 
+      // Pick gesture function
       const gestureFn = gestureMap[gesture];
       if (gestureFn) gestureFn(); // Run gesture asynchronously
       else console.warn(`Unknown gesture: ${gesture}`);
 
-      return fhSay(response);
+      // Generating SSML text for the selected voice style
+      //const ssml = voiceStyles[voiceStyle]
+      //? voiceStyles[voiceStyle](response)
+      //: voiceStyles["neutral"](response);
+
+      //await fhVoice("Azure/en-US-AriaNeural");
+
+      // Construct SSML for selected style
+    //const ssml = `
+    //  <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis"
+    //         xmlns:mstts="http://www.w3.org/mstts"
+    //         xml:lang="en-US">
+    //    <voice name="en-US-AriaNeural">
+    //      <mstts:express-as style="${voiceStyle}">
+    //        ${response}
+    //      </mstts:express-as>
+    //    </voice>
+    //  </speak>
+    //`;
+
+
+      // Building full Azure voice identifier
+      const azureVoice = `Azure/en-US-AriaNeural/${voiceStyle}`;
+
+      console.log("LLM BEFORE RETURN:");
+      console.log("Response:", response);
+      console.log("Gesture:", gestureFn);
+      console.log("Voice style:", azureVoice);
+      //console.log("SSML:", ssml);
+
+      //Executing all actions (reponse [with SSLM tag for selected voice style] and gesture) in parallel
+      return Promise.all([
+        gestureFn ? gestureFn() : null, //Perform gesture
+        //fhSay(ssml) //SSML-formatted string (expressive voice style)
+        await fhVoice(azureVoice),
+        //await fhVoice("Azure/en-US-AriaNeural/cheerful"),
+        //fhVoice("en-US-AriaNeural/cheerful"),
+        fhSay(response),
+        //await fhSay(ssml, true)
+        //fhSay(ssml, true)
+      ]);
     }),
 
 
@@ -585,27 +741,40 @@ const dmMachine = setup({
       }),
 
   },
-}).createMachine({
+
+  }).createMachine({
   id: "root",
   context: {
     userInput: "",
     llmResponse: "",
     llmGesture: "",
+    llmVoiceStyle: "",
     //instructionsLLM: "You are a conversation assistant and your job is to provide very brief chat-like responses. You have to end your sentences by saying 'wow'. ",
-    instructionsLLM: `
-      You are an expressive AI assistant controlling a social robot. 
-      Given the conversation, respond naturally and choose ONE gesture from this list that best matches the emotional tone of your response: ${gestureList.join(", ")}.
-
-      Return ONLY a valid JSON object in this format:
-
-      {
-        "response": "<your natural language reply>",
-        "gesture": "<one of: ${gestureList.join(", ")}>"
-      }
-
-      Do not include explanation, markdown, or text outside the JSON.
-      `.trim(),
+    //instructionsLLM: `
+    //  You are an expressive AI assistant controlling a social robot. 
+    //  Given the conversation, respond naturally and choose ONE gesture from this list that best matches the emotional tone of your response: ${gestureList.join(", ")}.
+    //
+    //  Return ONLY a valid JSON object in this format:
+    //
+    //  {
+    //    "response": "<your natural language reply>",
+    //    "gesture": "<one of: ${gestureList.join(", ")}>"
+    //  }
+    //
+    //  Do not include explanation, markdown, or text outside the JSON.
+    //  `.trim(),
       //Maybe: If unsure, default to "Happy"?
+    instructionsLLM: `
+    You are an expressive AI assistant controlling a social robot.
+    Each time you respond, return your answer as a JSON object formatted like this:
+    {
+      "response": "<your natural language response text>",
+      "gesture": "<one of: ${gestureList.join(", ")}>",
+      "voiceStyle": "<one of: ${voiceStylesList.join(", ")}>"
+    }
+    Choose the gesture and voiceStyle from each provided list that best match the emotional tone of your response.
+    Only respond with the JSON, no explanations or text outside the object.
+    `.trim(), //If unsure, default to gesture="Happy" and voiceStyle="neutral".
 
     messages: [], //to store the full chat history
   },
@@ -678,6 +847,7 @@ const dmMachine = setup({
           actions: assign({
             llmResponse: ({ event }) => event.output.response,
             llmGesture: ({ event }) => event.output.gesture,
+            llmVoiceStyle: ({ event }) => event.output.voiceStyle,
             messages: ({ context, event }) => [
               ...context.messages, {
                 role: "assistant",
@@ -743,6 +913,10 @@ const dmMachine = setup({
               console.log("LLM Gesture:", event.output.gesture);
               return event.output.gesture;
             },
+            llmVoiceStyle: ({ event }) => {
+              console.log("LLM VoiceStyle:", event.output.voiceStyle);
+              return event.output.voiceStyle;
+            },
             messages: ({ context, event }) => [
               ...context.messages, {
                 role: "assistant",
@@ -763,17 +937,16 @@ const dmMachine = setup({
         input: ({ context }) => ({
           response: context.llmResponse,
           gesture: context.llmGesture,
+          voiceStyle: context.llmVoiceStyle,
         }),
         onDone: {
           target: "Listen",
-          actions: ({ event }) => {console.log("LLM says:", event.output)},
-          //actions: ({ event }) => event.output,
+          actions: ({ event }) => event.output},
         },
         onError: {
           target: "Fail",
           actions: ({ event }) => console.error(event),
         }
-      }
     },
     Fail: {
       id: "Fail",
