@@ -123,7 +123,7 @@ async function sadGestureB() {
 }
 
 // ======================================================
-// 😡 ANGRY
+// ANGRY
 // ======================================================
 
 async function angryGestureA() {
@@ -189,7 +189,7 @@ async function angryGestureB() {
 }
 
 // ======================================================
-// 😌 CALM
+//  CALM
 // ======================================================
 
 async function calmGestureA() {
@@ -247,7 +247,7 @@ async function calmGestureB() {
 }
 
 // ======================================================
-// 🤝 FRIENDLY
+//  FRIENDLY
 // ======================================================
 
 async function friendlyGestureA() {
@@ -307,7 +307,7 @@ async function friendlyGestureB() {
 }
 
 // ======================================================
-// 💗 EMPATHETIC
+//  EMPATHETIC
 // ======================================================
 
 async function empatheticGestureA() {
@@ -365,6 +365,9 @@ async function empatheticGestureB() {
   });
 }
 
+// ======================================================
+//  SERIOUS
+// ======================================================
 
 async function seriousGestureA() {
   const myHeaders = new Headers();
@@ -422,6 +425,10 @@ async function seriousGestureB() {
   });
 }
 
+// ======================================================
+//  EXCITED
+// ======================================================
+
 async function excitedGestureA() {
   const myHeaders = new Headers();
   myHeaders.append("accept", "application/json");
@@ -478,6 +485,10 @@ async function excitedGestureB() {
   });
 }
 
+// ======================================================
+//  DEPRESSED
+// ======================================================
+
 async function depressedGestureA() {
   const myHeaders = new Headers();
   myHeaders.append("accept", "application/json");
@@ -533,6 +544,10 @@ async function depressedGestureB() {
     }),
   });
 }
+
+// ======================================================
+//  HOPEFUL
+// ======================================================
 
 async function hopefulGestureA() {
   const myHeaders = new Headers();
@@ -591,11 +606,8 @@ async function hopefulGestureB() {
 }
 
 
-
-
-
 // ======================================================
-// 💗 EXTRA GESTURES I USED FOR LAB3
+// EXTRA GESTURES I USED FOR LAB3
 // ======================================================
 
 async function confusedGesture() {
@@ -780,6 +792,12 @@ async function BigSmile() {
         }
       },
       {
+        //Holding the gesture for a bit to add emotional weight
+        time: [5.0],
+        persist: true,
+        params: {},
+      },
+      {
         time:[0.96],
         persist: false,
         params: {
@@ -811,10 +829,11 @@ async function Happy() {
           },
         },
         {
-          time: [0.9],
-          persist: false,
-          params: { reset: true },
-        },
+        //Reset to neutral
+        time: [4.0],
+        persist: false,
+        params: { reset: true },
+      },
       ],
       class: "furhatos.gestures.Gesture",
     }),
@@ -846,7 +865,7 @@ async function GazeAway() {
           },
         },
         {
-          time: [1.0],
+          time: [4.0],
           persist: false,
           params: { "reset": true },
         },
@@ -856,7 +875,7 @@ async function GazeAway() {
   });
 }
 
-async function DoubleNod() {
+async function DoubleNod() { //it's actually not double - whoops
   const myHeaders = new Headers();
   myHeaders.append("accept", "application/json");
 
@@ -887,12 +906,12 @@ async function DoubleNod() {
             NECK_TILT: 8.0,  //tilt down
           }
         },
-        {
-          //Holding the gesture
-          time: [0.6],
-          persist: true,
-          params: {},
-        },
+        //{
+        //  //Holding the gesture
+        //  time: [1.0],
+        //  persist: true,
+        //  params: {},
+        //},
         {
           //Reset to neutral
           time: [1.0],
@@ -951,7 +970,7 @@ async function Kissing() {
 }
 
 
-//The gestures I used for lab 3 are not included in the export block (except for Kissing), but consider adding them!
+//Not all the gestures I used for lab 3 are included in the export block
 export {
   cheerfulGestureA,
   cheerfulGestureB,
@@ -974,4 +993,8 @@ export {
   hopefulGestureA,
   hopefulGestureB,
   Kissing,
+  BigSmile, 
+  Happy, 
+  DoubleNod, 
+  GazeAway
 };

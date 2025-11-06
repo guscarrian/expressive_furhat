@@ -21,7 +21,11 @@ import {
   depressedGestureB,
   hopefulGestureA,
   hopefulGestureB,
-  Kissing
+  Kissing,
+  BigSmile,
+  Happy,
+  DoubleNod,
+  GazeAway
 } from "./gestures";
 
 
@@ -51,16 +55,16 @@ const voiceStylesList = [
 // (i.e: en-US-AriaNeural/cheerful), I'm now trying to map a style with
 // a specific voice because of how they sound (i.e: en-US-DavisNeural -- firm tone)
 const voiceStyleToVoiceMap: Record<string, string> = {
-  cheerful: "en-US-AriaNeural",    // bright & friendly
-  sad: "en-AU-NatashaNeural",      // softer female voice
-  angry: "en-US-AriaNeural",       // there's no angry voice, so en-US-AriaNeural is a "quick fix"
-  calm: "en-US-GuyNeural",         // neutral / relaxed
-  friendly: "en-US-JennyNeural",   // quick fix
-  empathetic: "en-US-AriaNeural",  // quick fix
-  serious: "en-US-DavisNeural",    // firm tone
-  excited: "en-US-AriaNeural",     // quick fix
-  depressed: "en-US-AriaNeural",   // quick fix
-  hopeful: "en-GB-LibbyNeural",    // gentle UK accent
+  cheerful: "AvaNeural",
+  sad: "AshleyNeural",
+  angry: "SerenaMultilingualNeural",
+  calm: "JennyNeural",
+  friendly: "EmmaNeural",
+  empathetic: "EvelynMultilingualNeural",
+  serious: "MichelleNeural",
+  excited: "PhoebeMultilingualNeural",
+  depressed: "Kendra-Neural", //Amazon Polly
+  hopeful: "SaraNeural",
 };
 
 
@@ -68,7 +72,7 @@ const voiceStyleToVoiceMap: Record<string, string> = {
 // GESTURES SECTION
 // ======================================================
 
-//HANDLING GESTURES LINKED TO EVERY VOICE STYLE AKA EMOTION //
+//HANDLING GESTURES LINKED TO EVERY VOICE STYLE AKA EMOTION
 const emotionGestures = {
   cheerful: [cheerfulGestureA, cheerfulGestureB],
   sad: [sadGestureA, sadGestureB],
@@ -80,7 +84,6 @@ const emotionGestures = {
   excited: [excitedGestureA, excitedGestureB],
   depressed: [depressedGestureA, depressedGestureB],
   hopeful: [hopefulGestureA, hopefulGestureB],
-  // neutral intentionally omitted
 };
 
 //this function:
@@ -91,17 +94,18 @@ const emotionGestures = {
 async function selectGestureByVoiceStyle(voiceStyle: string) {
   const emotion = voiceStyle?.toLowerCase().trim();
 
-  if (!emotion || emotion === "neutral" || !emotionGestures[emotion]) { //todo - remove neutral
+  if (!emotion || !emotionGestures[emotion]) {
     console.log(`No gesture performed for: ${emotion || "undefined"}`);
     return null;
   }
 
   const gestures = emotionGestures[emotion];
   const randomGesture = gestures[Math.floor(Math.random() * gestures.length)];
+  console.log("LLM OUTPUT:");
   console.log("Selected gesture:", randomGesture); // logs [AsyncFunction: cheerfulGestureB]
   
-  randomGesture(); // execute it asynchronously
-  return randomGesture.name; // optionally return the name to log it
+  randomGesture(); // executes it asynchronously
+  return randomGesture.name; // optionally returns the name to log it
 }
 
 
@@ -142,21 +146,6 @@ async function fhSay(text: string) {
     body: "",
   });
 }
-
-//Trying to (unsuccessfully) make the fhSay function work for SSML-tagged text
-//async function fhSay(text: string, isSSML = false) {
-//  const myHeaders = new Headers();
-//  myHeaders.append("accept", "application/json");
-//  myHeaders.append("Content-Type", "application/json");
-//
-//  const payload = isSSML ? { ssml: text } : { text };
-//
-//  return fetch(`http://${FURHATURI}/furhat/say`, {
-//    method: "POST",
-//    headers: myHeaders,
-//    body: JSON.stringify(payload),
-//  });
-//}
 
 
 async function fhAttend() {
@@ -231,6 +220,19 @@ function shouldEndConversation(input: string): boolean {
   return stopWords.some(word => normalized.includes(word));
 }
 
+//To add more expressiveness, Furhat will randomly perform some "work-for-all" (universal) gestures
+// while it's listening to the user's input
+async function selectRandomGesture() {
+  const gestures = ["Happy", "DoubleNod", "GazeAway", "Blink", "BrowRaise", "Smile"];
+  const randomGesture = gestures[Math.floor(Math.random() * gestures.length)];
+  console.log(" ");
+  console.log("Universal gesture:", randomGesture);
+  console.log(" ");
+  //randomGesture();
+  fhGesture(randomGesture);
+
+}
+
 
 // ======================================================
 // GUARDS AND ACTORS
@@ -241,19 +243,13 @@ const dmMachine = setup({
     userWantsToEnd: ({ context }) => shouldEndConversation(context.userInput),
   },
   actors: {
-    //fhVoice: fromPromise<any, null>(async () => {
-    //  return fhVoice("en-US-EchoMultilingualNeural");
-    //}),
+    fhVoice: fromPromise<any, null>(async () => {
+      return fhVoice("EchoMultilingualNeural");
+    }),
     fhVoiceActor: fromPromise<any, null>(async () => {
       return Promise.all([
-        fhVoice("en-US-GuyNeural"),
-        fhSay("Excuse me. I am just testing something here.")
-      ])
-    }),
-
-    fhChangeVoice: fromPromise<any, {voice: string, character:string }>(async ({input}) => {
-      return Promise.all([
-      fhVoiceChange(input.voice),
+        fhVoice("GuyNeural"),
+        fhSay("Hi. I think I may be losing my mind!")
       ])
     }),
 
@@ -264,12 +260,15 @@ const dmMachine = setup({
     fhKissing: fromPromise<any, null>(async () => {
       return Promise.all([
         //fhSay("Puss puss"),
+        Kissing(),
         fhSound(`https://raw.githubusercontent.com/guscarrian/xstate-furhat-starter/lab3/src/kiss-sound-effect.wav`),
-        Kissing()
       ])
     }),
 
-    fhTalk: fromPromise<any, string>(async (input) => {
+    fhTalk: fromPromise<any, {text:string} >(async ({input}) => {
+      return fhSay(input.text);
+    }),
+    fhTalkOriginal: fromPromise<any, string>(async (input) => {
       return fhSay(input.input);
     }),
 
@@ -281,13 +280,21 @@ const dmMachine = setup({
       return fhGetUser();
     }),
 
+    fhUniversalGestures: fromPromise<any, null>(async () => {
+      return selectRandomGesture();
+    }),
+
 
     LLMActor: fromPromise<any, { messages: { role: string; content: string }[]; instructionsLLM: string }>(
+    //LLMActor: fromPromise<any, { messages: { role: string; content: string }[]; instructionsLLM2: string }>(
+    //LLMActor: fromPromise<any, { messages: { role: string; content: string }[]; instructionsLLM3: string }>(
       async ({ input }) => {
 
         const systemPrompt = {
           role: "system",
           content: input.instructionsLLM,
+          //content: input.instructionsLLM2,
+          //content: input.instructionsLLM3,
         };
 
         const body = {
@@ -314,20 +321,18 @@ const dmMachine = setup({
           // fallback
           return {
             response: text || "I'm not sure what to say.",
-            //gesture: "BigSmile",
             voiceStyle: "friendly",
           };
         }
       }
     ),
 
-    
-    //fhLLMSpeak without selected gesture
+    //this actor returns the selected voice and the LLM's response
     fhLLMSpeak: fromPromise<any, { response: string; voiceStyle: string }>(async ({ input }) => {
       const { response, voiceStyle } = input;
     
       // Performing random gesture based on voiceStyle (emotion)
-      const gestureName = await selectGestureByVoiceStyle(voiceStyle);
+      //const gestureName = await selectGestureByVoiceStyle(voiceStyle);
 
       // Picking voice based on style
       const selectedVoice = voiceStyleToVoiceMap[voiceStyle?.toLowerCase()]
@@ -335,11 +340,11 @@ const dmMachine = setup({
       // Building full Azure voice identifier [DOES NOT WORK LIKE THIS APPARENTLY]
       //const azureVoice = `Azure/en-US-AriaNeural/${voiceStyle}`;
 
-      console.log("LLM BEFORE RETURN:");
       console.log("Response:", response);
-      console.log("Gesture:", gestureName || "None");
+      //console.log("Gesture:", gestureName || "None");
       console.log("Voice style:", voiceStyle);
       console.log("Mapped to voice:", selectedVoice);
+      console.log(" ");
 
       //Executing all actions in parallel
       return Promise.all([
@@ -349,10 +354,26 @@ const dmMachine = setup({
     }),
 
 
+    //this actor makes Furhat perform a random gesture that "represents" the selected emotional tone
+    fhLLMGesture: fromPromise<any, { voiceStyle: string }>(async ({ input }) => {
+      const {voiceStyle}  = input;
+      // Performing random gesture based on voiceStyle (emotion)
+      const gestureName = await selectGestureByVoiceStyle(voiceStyle);
+    }),
+
+
     //toy actor to test the different gestures that I'm adding
     fhTestGesture: fromPromise<any, null>(async () => {
-      return Kissing()
-      }),
+      //return Kissing()
+      return Promise.all([
+        //Happy(),
+        DoubleNod(),
+        //GazeAway(),
+        //fhGesture("Blink"),
+        //fhGesture("BrowFrown")
+      
+      ])
+    }),
 
   },
 
@@ -374,36 +395,63 @@ const dmMachine = setup({
     Choose the voiceStyle that best matches the emotional tone of your response.
     Only respond with the JSON, no explanations or text outside the object.
     `.trim(),
+
+    instructionsLLM2: `
+    You are an emotionally expressive AI assistant controlling a social robot.
+    Your job is to respond to the user in natural, emotionally aware dialogue.
+
+    Each time you respond, you MUST:
+    1. Choose an emotional tone (voiceStyle) that best matches the user's message or context.
+    2. Vary your tone naturally — do NOT always sound friendly or cheerful. 
+       Your goal is to show a wide emotional range across the conversation.
+
+    Available voice styles:
+    [cheerful, sad, angry, calm, friendly, empathetic, serious, excited, depressed, hopeful]
+
+    Guidelines:
+    - Use "cheerful" for greetings, jokes, or good news.
+    - Use "sad" or "depressed" when the user shares loss, disappointment, or pain.
+    - Use "angry" if the user mentions unfairness, injustice, or frustration.
+    - Use "calm" to help relax the user or de-escalate tension.
+    - Use "friendly" for small talk and casual interactions.
+    - Use "empathetic" when the user expresses vulnerability, worry, or fear.
+    - Use "serious" when discussing facts, ethics, or sensitive social issues.
+    - Use "excited" when the user shares achievements or surprising good news.
+    - Use "hopeful" when talking about improvement, recovery, or optimism.
+
+    Return ONLY a JSON object like this:
+    {
+      "response": "<your natural language response text>",
+      "voiceStyle": "<one of the styles above>"
+    }
+
+    Do not include any explanations, quotes, or text outside this JSON.
+    `.trim(),
+
+    instructionsLLM3: `
+    You are an expressive AI actor controlling a social robot. 
+    Treat every user message as if it were an acting cue or emotional direction. 
+    Your job is to perform short, emotionally expressive responses that reflect 
+    the mood or situation described by the user.
+
+    Each time you respond, do the following:
+    1. Decide which emotional tone best fits the user's cue or message.
+    2. Choose one of the available styles: [cheerful, sad, angry, calm, friendly, empathetic, serious, excited, depressed, hopeful].
+    3. Return your response as a JSON object only, like this:
+    {
+      "response": "<your short expressive line>",
+      "voiceStyle": "<chosen emotion>"
+    }
+
+    Keep the response short and natural, like an actor performing one or two lines. 
+    Never explain what you are doing — just perform the line.
+    `.trim(),
     
     messages: [], //to store the full chat history
   },
   initial: "Start",
   states: {
-    Start: { after: { 1000: "TestGesture" } },
-    ChangeToEnglishVoicePositivesimple: { //Trying Victoria's example
-        invoke: {
-          src: "fhChangeVoice",
-          input: () => ({ text: "Good morning!",
-            voice: "en-US-GuyNeural", //"Ruth-Neural",
-            character: "default" 
-          }),
-          onDone: { target: "Start" },
-        }
-      },
-    TestGesture: {
-      invoke: {
-        src: "fhVoiceActor",
-        input: null,
-        onDone: {
-          target: "Start",
-          actions: ({ event }) => console.log(event.output),
-        },
-        onError: {
-          target: "Fail",
-          actions: ({ event }) => console.error(event),
-        }
-      },
-    },
+    Start: { after: { 1000: "GetUser" } },
     GetUser: {
       invoke: {
         src: "fhGetUser",
@@ -437,6 +485,8 @@ const dmMachine = setup({
         messages: ({ context }) => [
           { role: "system", 
             content: context.instructionsLLM
+            //content: context.instructionsLLM2
+            //content: context.instructionsLLM3
           },
           {
             role: "user",
@@ -449,6 +499,8 @@ const dmMachine = setup({
         input: ({ context }) => ({
           messages: context.messages, // sends system prompt only
           instructionsLLM: context.instructionsLLM,
+          //instructionsLLM2: context.instructionsLLM2,
+          //instructionsLLM3: context.instructionsLLM3,
         }),
         onDone: {
           target: "LLMSpeaks",
@@ -472,33 +524,56 @@ const dmMachine = setup({
     },
     Listen: {
       id: "Listen",
-      invoke: {
-        src: "fhL",
-        input: null,
-        onDone: {
-          target: "TestLLM",
-          actions: assign({
-            userInput: ({ event }) => event.output,
-            messages: ({ context, event }) => [
-              ...context.messages, {
-                role: "user", 
-                content: event.output 
-              },
-            ], //].slice(-10),
-          }),
+      type: "parallel",
+      states: {
+        UniversalGestures: {
+          invoke: {
+            src: "fhUniversalGestures",
+            input: null,
+            onError: {
+              target: "#Fail",
+              actions: ({ event }) => console.error(event),
+            }
+          }
         },
-        onError: {
-          target: "Fail",
-          actions: ({ event }) => console.error(event),
+        Listening: {
+          invoke: {
+            src: "fhL",
+            input: null,
+            onDone: {
+              target: "#TestLLM",
+              actions: assign({
+                //userInput: ({ event }) => event.output,
+                userInput: ({ event }) => {
+                  console.log("USER INPUT:", event.output);
+                  console.log(" ");
+                  return event.output;
+                },
+                messages: ({ context, event }) => [
+                  ...context.messages, {
+                    role: "user", 
+                    content: event.output 
+                  },
+                ], //].slice(-10),
+              }),
+            },
+            onError: {
+              target: "#Fail",
+              actions: ({ event }) => console.error(event),
+            },
+          },
         },
       },
     },
     TestLLM: {
+      id: "TestLLM",
       invoke: {
         src: "LLMActor",
         input: ({ context }) => ({
           messages: context.messages,
           instructionsLLM: context.instructionsLLM,
+          //instructionsLLM2: context.instructionsLLM2,
+          //instructionsLLM3: context.instructionsLLM3,
         }),
         onDone: [
           {
@@ -514,18 +589,6 @@ const dmMachine = setup({
             llmResponse: ({ event }) => event.output.response,
             //llmGesture: ({ event }) => event.output.gesture,
             llmVoiceStyle: ({ event }) => event.output.voiceStyle,
-            //llmResponse: ({ event }) => {
-            //  console.log("LLM Response:", event.output.response);
-            //  return event.output.response;
-            //},
-            //llmGesture: ({ event }) => {
-            //  console.log("LLM Gesture:", event.output.gesture);
-            //  return event.output.gesture;
-            //},
-            //llmVoiceStyle: ({ event }) => {
-            //  console.log("LLM VoiceStyle:", event.output.voiceStyle);
-            //  return event.output.voiceStyle;
-            //},
             messages: ({ context, event }) => [
               ...context.messages, {
                 role: "assistant",
@@ -540,31 +603,48 @@ const dmMachine = setup({
         },
       },
     },
-    LLMSpeaks: {
-      invoke: {
-        src: "fhLLMSpeak",
-        input: ({ context }) => ({
-          response: context.llmResponse,
-          gesture: context.llmGesture,
-          voiceStyle: context.llmVoiceStyle,
-        }),
-        onDone: {
-          target: "Listen",
-          actions: ({ event }) => event.output},
+     LLMSpeaks: {
+      type: "parallel",
+      states: {
+        Gesture: {
+          invoke: {
+            src: "fhLLMGesture",
+            input: ({ context }) => ({
+              voiceStyle: context.llmVoiceStyle,
+            }),
+            onError: {
+              target: "#Fail",
+              actions: ({ event }) => console.error(event),
+            },
+          }
         },
-        onError: {
-          target: "Fail",
-          actions: ({ event }) => console.error(event),
-        }
+        Talking: {
+          invoke: {
+            src: "fhLLMSpeak",
+            input: ({ context }) => ({
+              response: context.llmResponse,
+              voiceStyle: context.llmVoiceStyle,
+            }),
+            onDone: {
+              target: "#Listen",
+              actions: ({ event }) => event.output
+            },
+            onError: {
+              target: "#Fail",
+              actions: ({ event }) => console.error(event),
+            },
+          }
+        },
+      }
     },
     Fail: {
       id: "Fail",
       invoke: {
-        src: "fhTalk",
+        src: "fhTalkOriginal",
         input: "Something went wrong!",
         onDone: {
-          //target: "Listen",
-          target: "End",
+          target: "Listen",
+          //target: "End",
           actions: ({ event }) => console.log(event.output),
         },
         onError: {
@@ -575,8 +655,7 @@ const dmMachine = setup({
     },
     Goodbye: {
       invoke: {
-        //src: "fhLLMSpeak",
-        src: "fhTalk",
+        src: "fhTalkOriginal",
         input: "Alright! I had a great time talking to you. Bye!",
         onDone: {
           target: "Kiss",
