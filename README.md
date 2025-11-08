@@ -1,6 +1,6 @@
 # expressive_furhat
 
-- Report: comming soon!
+- Report: coming soon!
 - Description of the repo (TODO)
 
 ## How to get started:
