@@ -20,3 +20,10 @@ All robot actions (i.e., speech, gestures, user tracking, etc) are executed usin
 To generate dynamic conversational responses, the project uses Ollama, an open-source tool for running LLMs locally. The chosen model is llama3.1, accessed via Ollama's HTTP API.
 
 Furhat supports several speech synthesis providers, including Microsoft Azure, Amazon Polly, Acapela, and ElevenLabs. I decided to work with Azure and Polly because Furhat Robotics provides built-in API credentials for these providers, which means the user does not need to authenticate or call these services directly. Instead, Furhat exposes all supported voices through its own REST endpoint (e.g., /furhat/voice?name=AriaNeural).
+
+### TODO:
+## Components
+## Implementation
+## Demo
+## Discussion
+## Future work
