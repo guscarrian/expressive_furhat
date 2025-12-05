@@ -25,7 +25,7 @@ Furhat supports several speech synthesis providers, including Microsoft Azure, A
 # System components
 
 ## LLM Prompting Pipeline
-The first core component of the system is the prompting pipeline used to communicate with the LLM. The goal of this module is to take the user's input, pass it to the LLM along with a set of instructions, and obtain a structured response. This is implemented inside the **LLMActor**, using the **system** role.
+The first core component of the system is the prompting pipeline used to communicate with the LLM. The goal of this module is to take the user's input, pass it to the LLM along with a set of instructions, and obtain a structured response. This is implemented inside the *LLMActor*, using the *system* role.
 
 The instructions specify how the model should behave. They also indicate that the response should include one of several provided emotional tones (i.e., cheerful, sad, angry, etc) and that it must be returned as a JSON object of the following form:
 
@@ -143,9 +143,15 @@ Even though the baseline prompt (approach 1) produced the least emotional variat
 
 
 ## Gesture Generation
-## Voice Synthesis
+
+The gestures used in this project are a mix of custom-made and built-in gestures. The custom-made gestures were designed to represent the different emotional tones that match the style tags supported by Microsft Azure (as introduced in the **LLM Prompting Pipeline** section). These gestures are created by combining parameters (LOOK_DOWN_LEFT, BROW_UP_LEFT, NECK_TILT, etc) from Furhat's [BasicParams library](https://docs.furhat.io/deprecated/remote-api#furhat-gesture:~:text=All%20BasicParams%20are%20listed%20here%3A). For example, combining SMILE_OPEN, EYE_SQUINT_LEFT, BROW_UP_LEFT, etc, helps create a cheerful expression. A total of 20 custom gestures were created, two for each emotional tone (e.g., *cheerfulGestureA*, *cheerfulGestureB*, *sadGestureA*, *sadGestureB*, etc). The actor *fhLLMGesture* calls the function *selectGestureByVoiceStyle()*, which takes the selected voice style (i.e., emotional tone) and randomly picks a corresponding gesture from the *emotionGestures* array.
+
+In addition to these emotion-specific gestures, the system also uses a set of "universal gestures". These includes Furhat's built-in gestures (*Blink*, *BrowRaise*, *Smile*) as well as three additional custom gestures (*Happy*, *DoubleNod*, *GazeAway*). Universal gestures can be used interchangeably at any moment while Furhat is listening to the user and are not tied to a particular emotional tone. Their purpose is to make the interaction feel more natural by creating the illusion that the robot is actively attending rather than remaining still. This behavior is handled by the *fhUniversalGestures* actor, which selects a random universal gesture each time the robot enters the listening state.
+
 
 # TODO:
+
+## Voice Synthesis
 
 ## Implementation
 ## Demo
