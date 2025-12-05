@@ -1,6 +1,6 @@
-# Introduction
+# 1. Introduction
 
-## Motivation & Goal
+## 1.1. Motivation & Goal
 
 My motivation for this project comes from a genuine interest in conversational social robots and a desire to understand how to make their interactions feel more human and expressive. After experimenting with integrating an Large Language Model (LLM) into a robot in earlier coursework, it became clear that the interaction felt flat and far from resembling a natural conversation.
 
@@ -11,20 +11,20 @@ This made me curious about how an LLM's textual output could be adapted into spo
 The goal of this project is therefore to explore how to bridge the gap between LLM-generated text and expressive non-verbal behaviour on Furhat. My approach is to prompt the LLM to explicitly output an emotional tone that matches its response. This emotional tone can then be mapped to custom-made Furhat gestures and to specific voice styles, allowing the robot to "show" and "sound" the emotion behind the words.
 
 
-# Services and APIs
+# 2. Services and APIs
 
 This project relies on three core components: the LLM prompting pipeline, gesture generation, and voice synthesis. These are implemented through a combination of external APIs and pre-existing services, including the Furhat Remote API, Ollama's LLM API, and Furhat's built-in TTS integrations (Microsoft Azure and Amazon Polly).
 
-All robot actions (i.e., speech, gestures, user tracking, etc) are executed using Furhat Remote API. Furhat exposes REST endpoints such as /furhat/say, /furhat/listen, /furhat/gesture, /furhat/attend, /furhat/voice, etc. These endpoints allow the XState machine to fully control the robot from outside the Furhat system. Custom gestures were defined manually in TypeScript and sent to Furhat as JSON gesture definitions through the API (<mark>Section X provides further details on gestures</mark>).
+All robot actions (i.e., speech, gestures, user tracking, etc) are executed using Furhat Remote API. Furhat exposes REST endpoints such as /furhat/say, /furhat/listen, /furhat/gesture, /furhat/attend, /furhat/voice, etc. These endpoints allow the XState machine to fully control the robot from outside the Furhat system. Custom gestures were defined manually in TypeScript and sent to Furhat as JSON gesture definitions through the API ([Section 3.2](#32-gesture-generation) provides further details on gestures).
 
 To generate dynamic conversational responses, the project uses Ollama, an open-source tool for running LLMs locally. The chosen model is llama3.1, accessed via Ollama's HTTP API.
 
 Furhat supports several speech synthesis providers, including Microsoft Azure, Amazon Polly, Acapela, and ElevenLabs. I decided to work with Azure and Polly because Furhat Robotics provides built-in API credentials for these providers, which means the user does not need to authenticate or call these services directly. Instead, Furhat exposes all supported voices through its own REST endpoint (e.g., /furhat/voice?name=AriaNeural).
 
 
-# System components
+# 3. System components
 
-## LLM Prompting Pipeline
+## 3.1. LLM Prompting Pipeline
 The first core component of the system is the prompting pipeline used to communicate with the LLM. The goal of this module is to take the user's input, pass it to the LLM along with a set of instructions, and obtain a structured response. This is implemented inside the *LLMActor*, using the *system* role.
 
 The instructions specify how the model should behave. They also indicate that the response should include one of several provided emotional tones (i.e., cheerful, sad, angry, etc) and that it must be returned as a JSON object of the following form:
@@ -142,18 +142,27 @@ Although this approach initially produced more varied emotional outputs, it went
 Even though the baseline prompt (approach 1) produced the least emotional variation, it also generated the most stable and well-formatted responses. Since the rest of the system components depend on the correct JSON formatting in order to work properly, the first approach was chosen as the final version, but keeping in mind that emotional diversity remains limited unless the user provides explicit emotional cues (i.e.: "Answer in an optimistic, hopeful tone").
 
 
-## Gesture Generation
+## 3.2. Gesture Generation
 
-The gestures used in this project are a mix of custom-made and built-in gestures. The custom-made gestures were designed to represent the different emotional tones that match the style tags supported by Microsft Azure (as introduced in the **LLM Prompting Pipeline** section). These gestures are created by combining parameters (LOOK_DOWN_LEFT, BROW_UP_LEFT, NECK_TILT, etc) from Furhat's [BasicParams library](https://docs.furhat.io/deprecated/remote-api#furhat-gesture:~:text=All%20BasicParams%20are%20listed%20here%3A). For example, combining SMILE_OPEN, EYE_SQUINT_LEFT, BROW_UP_LEFT, etc, helps create a cheerful expression. A total of 20 custom gestures were created, two for each emotional tone (e.g., *cheerfulGestureA*, *cheerfulGestureB*, *sadGestureA*, *sadGestureB*, etc). The actor *fhLLMGesture* calls the function *selectGestureByVoiceStyle()*, which takes the selected voice style (i.e., emotional tone) and randomly picks a corresponding gesture from the *emotionGestures* array.
+The gestures used in this project are a mix of custom-made and built-in gestures. The custom-made gestures were designed to represent the different emotional tones that match the style tags supported by Microsft Azure (as introduced in [section 3.1.](#31-llm-prompting-pipeline)). These gestures are created by combining parameters (LOOK_DOWN_LEFT, BROW_UP_LEFT, NECK_TILT, etc) from Furhat's [BasicParams library](https://docs.furhat.io/deprecated/remote-api#furhat-gesture:~:text=All%20BasicParams%20are%20listed%20here%3A). For example, combining SMILE_OPEN, EYE_SQUINT_LEFT, BROW_UP_LEFT, etc, helps create a cheerful expression. A total of 20 custom gestures were created, two for each emotional tone (e.g., *cheerfulGestureA*, *cheerfulGestureB*, *sadGestureA*, *sadGestureB*, etc). The actor *fhLLMGesture* calls the function *selectGestureByVoiceStyle()*, which takes the selected voice style (i.e., emotional tone) and randomly picks a corresponding gesture from the *emotionGestures* array.
 
 In addition to these emotion-specific gestures, the system also uses a set of "universal gestures". These includes Furhat's built-in gestures (*Blink*, *BrowRaise*, *Smile*) as well as three additional custom gestures (*Happy*, *DoubleNod*, *GazeAway*). Universal gestures can be used interchangeably at any moment while Furhat is listening to the user and are not tied to a particular emotional tone. Their purpose is to make the interaction feel more natural by creating the illusion that the robot is actively attending rather than remaining still. This behavior is handled by the *fhUniversalGestures* actor, which selects a random universal gesture each time the robot enters the listening state.
 
 
 # TODO:
 
-## Voice Synthesis
+## 3.3. Voice Synthesis
 
-## Implementation
-## Demo
-## Discussion
-## Future Work
+## 4. Implementation
+
+# 5. Demo
+To demonstrate how the system is intended to behave in an ideal interaction, a demo video[^1] was created showing Furhat performing expressive gestures and switching between different voice styles.
+
+The demo video presents a scripted conversation designed to showcase the system's full range of expressive behaviours. Because it is difficult to reliably trigger every gesture and voice style in a single live interaction with Furhat, the video does not invoke the LLM in real time. Instead, it follows a predefined dialogue that intentionally covers all ten emotional tones used in the project: *cheerful, sad, angry, calm, friendly, empathetic, serious, excited, depressed* and *hopeful*.
+
+Although the interaction is scripted, the robot's spoken lines are actual LLM responses obtained during earlier test sessions. The purpose of the video is therefore to show the complete collection of custom gestures and Azure voices in a controlled way, ensuring that each expressive behaviour can be clearly observed.
+
+## 6. Discussion
+## 7. Future Work
+
+[^1]: The link to the demo video is: https://youtu.be/6dGcileuoZE.
