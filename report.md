@@ -6,9 +6,9 @@ My motivation for this project comes from a genuine interest in conversational s
 
 An LLM's output is purely text-based and it is not inherently designed for multimodal generation (at least not in the way an embodied conversational agent requires). When integrating an LLM into a social robot, we risk losing a crucial part of human communication if we rely only on spoken text. Without facial expressions or prosodic cues, much of the communicative richness that characterizes natural interaction disappears.
 
-This made me curious about how an LLM's textual output could be adapted into spoken, expressive behaviour by combining language, voice prosody, and non-verbal gestures in a coherent emotional way. Furhat, with its flexible expressive capabilities, is ideal for exploring this challenge.
+This made me curious about how an LLM's textual output could be adapted into spoken, expressive behavior by combining language, voice prosody, and non-verbal gestures in a coherent emotional way. Furhat, with its flexible expressive capabilities, is ideal for exploring this challenge.
 
-The goal of this project is therefore to explore how to bridge the gap between LLM-generated text and expressive non-verbal behaviour on Furhat. My approach is to prompt the LLM to explicitly output an emotional tone that matches its response. This emotional tone can then be mapped to custom-made Furhat gestures and to specific voice styles, allowing the robot to "show" and "sound" the emotion behind the words.
+The goal of this project is therefore to explore how to bridge the gap between LLM-generated text and expressive non-verbal behavior on Furhat. My approach is to prompt the LLM to explicitly output an emotional tone that matches its response. This emotional tone can then be mapped to custom-made Furhat gestures and to specific voice styles, allowing the robot to "show" and "sound" the emotion behind the words.
 
 
 # 2. Services and APIs
@@ -144,7 +144,7 @@ Even though the baseline prompt (approach 1) produced the least emotional variat
 
 ## 3.2. Gesture Generation
 
-The gestures used in this project are a mix of custom-made and built-in gestures. The custom-made gestures were designed to represent the different emotional tones that match the style tags supported by Microsft Azure (as introduced in [section 3.1.](#31-llm-prompting-pipeline)). These gestures are created by combining parameters (LOOK_DOWN_LEFT, BROW_UP_LEFT, NECK_TILT, etc) from Furhat's [BasicParams library](https://docs.furhat.io/deprecated/remote-api#furhat-gesture:~:text=All%20BasicParams%20are%20listed%20here%3A). For example, combining SMILE_OPEN, EYE_SQUINT_LEFT, BROW_UP_LEFT, etc, helps create a cheerful expression. A total of 20 custom gestures were created, two for each emotional tone (e.g., *cheerfulGestureA*, *cheerfulGestureB*, *sadGestureA*, *sadGestureB*, etc). The actor *fhLLMGesture* calls the function *selectGestureByVoiceStyle()*, which takes the selected voice style (i.e., emotional tone) and randomly picks a corresponding gesture from the *emotionGestures* array.
+The gestures used in this project are a mix of custom-made and built-in gestures. The custom-made gestures were designed to represent the different emotional tones that match the style tags supported by Microsft Azure (as introduced in [Section 3.1.](#31-llm-prompting-pipeline)). These gestures are created by combining parameters (LOOK_DOWN_LEFT, BROW_UP_LEFT, NECK_TILT, etc) from Furhat's [BasicParams library](https://docs.furhat.io/deprecated/remote-api#furhat-gesture:~:text=All%20BasicParams%20are%20listed%20here%3A). For example, combining SMILE_OPEN, EYE_SQUINT_LEFT, BROW_UP_LEFT, etc, helps create a cheerful expression. A total of 20 custom gestures were created, two for each emotional tone (e.g., *cheerfulGestureA*, *cheerfulGestureB*, *sadGestureA*, *sadGestureB*, etc). The actor *fhLLMGesture* calls the function *selectGestureByVoiceStyle()*, which takes the selected voice style (i.e., emotional tone) and randomly picks a corresponding gesture from the *emotionGestures* array.
 
 In addition to these emotion-specific gestures, the system also uses a set of "universal gestures". These includes Furhat's built-in gestures (*Blink*, *BrowRaise*, *Smile*) as well as three additional custom gestures (*Happy*, *DoubleNod*, *GazeAway*). Universal gestures can be used interchangeably at any moment while Furhat is listening to the user and are not tied to a particular emotional tone. Their purpose is to make the interaction feel more natural by creating the illusion that the robot is actively attending rather than remaining still. This behavior is handled by the *fhUniversalGestures* actor, which selects a random universal gesture each time the robot enters the listening state.
 
@@ -153,16 +153,30 @@ In addition to these emotion-specific gestures, the system also uses a set of "u
 
 ## 3.3. Voice Synthesis
 
+
 ## 4. Implementation
 
 # 5. Demo
+
 To demonstrate how the system is intended to behave in an ideal interaction, a demo video[^1] was created showing Furhat performing expressive gestures and switching between different voice styles.
 
-The demo video presents a scripted conversation designed to showcase the system's full range of expressive behaviours. Because it is difficult to reliably trigger every gesture and voice style in a single live interaction with Furhat, the video does not invoke the LLM in real time. Instead, it follows a predefined dialogue that intentionally covers all ten emotional tones used in the project: *cheerful, sad, angry, calm, friendly, empathetic, serious, excited, depressed* and *hopeful*.
+The demo video presents a scripted conversation designed to showcase the system's full range of expressive behaviors. Because it is difficult to reliably trigger every gesture and voice style in a single live interaction with Furhat, the video does not invoke the LLM in real time. Instead, it follows a predefined dialogue that intentionally covers all ten emotional tones used in the project: *cheerful, sad, angry, calm, friendly, empathetic, serious, excited, depressed* and *hopeful*.
 
-Although the interaction is scripted, the robot's spoken lines are actual LLM responses obtained during earlier test sessions. The purpose of the video is therefore to show the complete collection of custom gestures and Azure voices in a controlled way, ensuring that each expressive behaviour can be clearly observed.
+Although the interaction is scripted, the robot's spoken lines are actual LLM responses obtained during earlier test sessions. The purpose of the video is therefore to show the complete collection of custom gestures and Azure voices in a controlled way, ensuring that each expressive behavior can be clearly observed.
 
 ## 6. Discussion
-## 7. Future Work
+
+
+# 7. Future Work
+
+This project was constrained by both time and several technical challenges, which naturally opens the door for future improvements. One potential direction is leveraging the prompting strategy or exploring alternative approaches that support emotional variation. General-purpose LLMs tend to default to friendly tones unless strongly guided, so improving this aspect could lead to more expressive behavior.
+
+Moreover, gesture design could also benefit from improvement. Although the project includes a diverse set of custom gestures, even more realistic behavior could be achieved by researching on human gesture production, body language or even cultural variation.
+
+Voice expressivity is the biggest limitation of this project. Finding the way to employ Azure's built-in style tags or SSML-style emotional cues through the Furhat Remote API was a major challenge that remains unsolved. Thus, exploring other alternatives such as using Furhat Skills may make it possible to apply emotional voice styles directly, which would significantly enhance expressiveness.
+
+Finally, once these improvements are in place, a natural next step would be to conduct a user study. Observing real users interacting with Furhat would provide valuable insights into how effectively the system communicates emotion and how the multimodal behaviors influence the overall interaction experience.
+
+
 
 [^1]: The link to the demo video is: https://youtu.be/6dGcileuoZE.
