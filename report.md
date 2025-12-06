@@ -175,7 +175,82 @@ Finally, voice synthesis was the most technically challenging component of the p
 
 
 
-## 4. Implementation (TODO)
+# 4. Implementation
+
+The system is implemented as a state machine that coordinates user detection, greeting, LLM calls, gesture generation, voice synthesis and conversation flow. Figure X illustrates the complete architecture, while the text below describes the behavior of each state and its actors.
+
+### 4.1. Start → GetUser
+
+The system begins in the *Start* state and transitions to *GetUser*. Here, the *fhGetUser* actor attempts to detect the user. 
+- onDone → transition to *Attend* state
+- onError → transition to *Fail* state
+
+This onDone/onError fallback logic appears throughout the state machine (*Attend, Greeting, LLMSpeaks*, etc).
+
+### 4.2. Attend
+
+In *Attend*, the *fhAttend* actor makes Furhat look at the user's position so that the interaction begins with proper attention.
+- onDone → transition to *Greeting* state
+
+### 4.3. Greeting
+
+This state triggers the first interaction with the LLM. Before invoking the model, the state sets an initial messages list containing the system prompt (*instructionsLLM*) and a predefined user message instructing the LLM to start the conversation with a short greeting. Then the state invokes *LLMActor*, which returns a JSON object containing the LLM's response and its selected emotional tone. On success, the system saves the LLM's answer (*llmResponse*), the selected emotional tone (*llmVoiceStyle*) and appends the message to the running dialogue (*messages*). It later transitions to *LLMSpeaks*.
+
+### 4.4. LLMSpeaks
+
+This state handles the robot's multimodal expression of the LLM's answer, that is, the corresponding gesture and voice. There are two child states:
+
+**Gesture:**
+*fhLLMGesture* selects and performs one of the gestures linked to the received emotional tone (e.g., *friendlyGestureB*, *sadGestureA*, etc).
+
+**Talking:**
+*fhLLMSpeak* synthesizes the LLM's answer using the corresponding Furhat voice.
+
+An example output could be:
+
+```
+Response: Hello there! It's lovely to meet you!
+Selected gesture: *friendlyGestureB*
+Selected voice: *EmmaNeural*
+```
+
+- onDone → transition to *Listen* state
+
+### 4.5. Listen
+
+This state listens to the user input while keeping Furhat expressive and responsive. It has two child states:
+
+**UniversalGestures:**
+*fhUniversalGestures* triggers random universal gesture to make Furhat appear attentive while listening.
+
+**Listening:**
+The *fhL* actor starts the speech recognizer. When the user speaks (onDone), it saves the captured text as *userInput* and append it to *messages* as a new user entry. Then, it transitions to *TestLLM*. 
+
+### 4.6. TestLLM
+
+This state evaluates the user's input and decides how the interaction continues. 
+
+If the recognized text contains any stopword (listed in *stopWords*), the system transitions to *Goodbye* as it means the user want to end the conversarion. Otherwise, the LLM is invoked again with the updated messages list. On success, the system saves the new LLM response and emotional tone, it appends the assistant reply to *messages*, and lastly returns to *LLMSpeaks*.
+
+This creates the main interaction loop: *LLMSpeaks* → *Listen* → *TestLLM* → *LLMSpeaks* → [...]
+
+The recursion continues until the user ends the conversation or an error breaks the loop.
+
+### 4.7. Goodbye
+
+In this state, *fhTalkOriginal* generates a goodbye message spoken with Furhat's default voice.
+
+- onDone → transition to *Kiss* state
+
+### 4.8. Kiss
+
+*fhKissing* plays a kiss gesture and sound effect to close the interaction in a playful way.
+
+-onDone → transition to *End* state
+
+### 4.9. End
+
+This is the machine's final state which prints a last message ("End of the conversation").
 
 
 # 5. Demo
@@ -187,7 +262,7 @@ The demo video presents a scripted conversation designed to showcase the system'
 Although the interaction is scripted, the robot's spoken lines are actual LLM responses obtained during earlier test sessions. The purpose of the video is therefore to show the complete collection of custom gestures and Azure voices in a controlled way, ensuring that each expressive behavior can be clearly observed.
 
 
-## 6. Discussion
+# 6. Discussion
 
 The prompt used to instruct the LLM is crucial to this project. While prompting is (relatively) simple, fast and requires very little code, it also introduces a few limitations. As discussed in [Section 3.1](#31-llm-prompting-pipeline), LLMs tend to default to socially polite behavior, which often results in "friendly" or "cheerful" responses unless explicitly told otherwise.
 
