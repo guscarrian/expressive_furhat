@@ -177,6 +177,7 @@ Finally, voice synthesis was the most technically challenging component of the p
 
 ## 4. Implementation (TODO)
 
+
 # 5. Demo
 
 To demonstrate how the system is intended to behave in an ideal interaction, a demo video[^1] was created showing Furhat performing expressive gestures and switching between different voice styles.
@@ -185,7 +186,26 @@ The demo video presents a scripted conversation designed to showcase the system'
 
 Although the interaction is scripted, the robot's spoken lines are actual LLM responses obtained during earlier test sessions. The purpose of the video is therefore to show the complete collection of custom gestures and Azure voices in a controlled way, ensuring that each expressive behavior can be clearly observed.
 
-## 6. Discussion (TODO)
+
+## 6. Discussion
+
+The prompt used to instruct the LLM is crucial to this project. While prompting is (relatively) simple, fast and requires very little code, it also introduces a few limitations. As discussed in [Section 3.1](#31-llm-prompting-pipeline), LLMs tend to default to socially polite behavior, which often results in "friendly" or "cheerful" responses unless explicitly told otherwise.
+
+The choice of using the "system" role in *LLMActor* combined with instructions that frame the model as an "AI assistant" may cause this friendly bias. This is an interesting aspect to investigate in the future.
+
+Additonally, it seems that the prompt alone is not enough to elicit diverse emotional tones unless the user input itself frames the emotion explicitly (e.g., "Pretend you're an actor performing a high-tension movie scene. You're really *angry*."). Without such cues, emotional variation remains limited.
+
+Moreover, obtaining a consistent JSON-formatted response from the LLM becomes increasingly challenging as the interaction continues (typically after around eight turns). Below is a failure output example where the model outputs a natural language line outside the JSON object:
+
+```
+"Alright, let's heat it up! We can start with the basics: the step-touch and the hip action." 
+{
+"response": "We can start with the basics: the step-touch and the hip action.",
+"voiceStyle": "friendly"
+}
+```
+
+Lastly, another important point to discuss is whether the prompts should be topic-specific. In the current implementation, the instructions do not define a particular domain or scenario. In other words, the LLM simply responds to whatever the user says. It is the user who decides on the topic of the conversation and leads it. It may be worth exploring whether more domain-specific prompts lead to more varied emotional cues, consistent formatting and an overall output quality.
 
 
 # 7. Future Work
