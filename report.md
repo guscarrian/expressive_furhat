@@ -149,12 +149,33 @@ The gestures used in this project are a mix of custom-made and built-in gestures
 In addition to these emotion-specific gestures, the system also uses a set of "universal gestures". These includes Furhat's built-in gestures (*Blink*, *BrowRaise*, *Smile*) as well as three additional custom gestures (*Happy*, *DoubleNod*, *GazeAway*). Universal gestures can be used interchangeably at any moment while Furhat is listening to the user and are not tied to a particular emotional tone. Their purpose is to make the interaction feel more natural by creating the illusion that the robot is actively attending rather than remaining still. This behavior is handled by the *fhUniversalGestures* actor, which selects a random universal gesture each time the robot enters the listening state.
 
 
-# TODO:
-
 ## 3.3. Voice Synthesis
 
+As mentioned in [Section 2](#2-services-and-apis), since Furhat Robotics provides built-in API credentials for Microsoft Azure and Amazon Polly, the project initially explored both of these speech synthesis providers.
 
-## 4. Implementation
+While some [Amazon Polly neural voices](https://docs.aws.amazon.com/polly/latest/dg/supportedtags.html) offer different styles, Furhat only supports *Neutral, Conversational* and *News*. In contrast, Microsoft Azure neural voices support a much wider range of expressive styles (*angry, cheerful, customerservice, empathetic, excited*, etc), which seemed a better choice for this project since we are seeking voice expressiveness. 
+
+Among Azure's voices, *en-US-AriaNeural* supports the largest number of style tags, so it was selected as the base voice. The intended design was to modulate its expressive style according to the emotional tone returned by the LLM. For instance:
+
+- If the LLM outputs *"voiceStyle": "sad"*, then *en-US-AriaNeural* should speak using the *sad* style.
+
+- If the LLM outputs *"voiceStyle": "excited"*, the same voice (*en-US-AriaNeural*) should switch to the *excited* style.
+
+This would ensure a consistent voice identity while still expressing a wide emotional range.
+
+At this point, the first challenge arise: the Furhat documentation did not explain how to use Azure's voice styles through the Remote API, using Typescript. While the documentation states that Furhat supports Microsoft Azure and Amazon Polly TTS, all examples involving voice styles are written in Kotlin and seem to relate to the Skill SDK rather than the Remote API. It was therefore unclear whether Azure style tags are actually supported in a way accessible from Typescript.
+
+A second challenge involved setting the correct voice name. When using the *fhVoice()* function, the voice identifier in the format used by Azure's official documentation was initially passed (e.g., "en-US-AriaNeural"). However, Furhat's Remote API expects a different naming convention (e.g., "AriaNeural"), matching the labels shown in the Furhat web interface. Even though this was easy to fix, it still required trial and error because the documentation did not clarify it, which cost extra time.
+
+An alternative strategy was to use SSML (Speech Synthesis Markup Language) tags, which are supported by Amazon Polly. This would have involved embedding the LLM's response inside custom SSML tags, allowing control over speaking style, rate and pitch to match the each emotional tone. This approach is more time-consuming since it requires to manually design each tag. However, this strategy was ultimately discarded because Furhat's Remote API endpoint */furhat/say?text=* does not interpret SSML. Instead, it treats the SSML-tagged string literally as plain text. In practice, this means the Remote API cannot handle SSML directly and that SSML is only available within Skill SDK.
+
+Since neither Azure's voice styles nor Polly's SSML tags could be used, the final implementation maps each emotional tone to a different Azure voice (e.g., *cheerful: "AvaNeural", sad: "AshleyNeural"*, etc). This does not reflect authentic emotional variation, but it allows the demo video to present distinguishable vocal differences for each emotion.
+
+Finally, voice synthesis was the most technically challenging component of the project. Multiple approaches were tested and, even though the current solution is simply functional for demonstration purposes, achieving expressive emotional speech in the Remote API remains an open area for future work.
+
+
+
+## 4. Implementation (TODO)
 
 # 5. Demo
 
@@ -164,7 +185,7 @@ The demo video presents a scripted conversation designed to showcase the system'
 
 Although the interaction is scripted, the robot's spoken lines are actual LLM responses obtained during earlier test sessions. The purpose of the video is therefore to show the complete collection of custom gestures and Azure voices in a controlled way, ensuring that each expressive behavior can be clearly observed.
 
-## 6. Discussion
+## 6. Discussion (TODO)
 
 
 # 7. Future Work
