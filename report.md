@@ -15,19 +15,19 @@ The goal of this project is therefore to explore how to bridge the gap between L
 
 This project relies on three core components: the LLM prompting pipeline, gesture generation, and voice synthesis. These are implemented through a combination of external APIs and pre-existing services, including the Furhat Remote API, Ollama's LLM API, and Furhat's built-in TTS integrations (Microsoft Azure and Amazon Polly).
 
-All robot actions (i.e., speech, gestures, user tracking, etc) are executed using Furhat Remote API. Furhat exposes REST endpoints such as /furhat/say, /furhat/listen, /furhat/gesture, /furhat/attend, /furhat/voice, etc. These endpoints allow the XState machine to fully control the robot from outside the Furhat system. Custom gestures were defined manually in TypeScript and sent to Furhat as JSON gesture definitions through the API ([Section 3.2](#32-gesture-generation) provides further details on gestures).
+All robot actions (i.e., speech, gestures, user tracking, etc) are executed using Furhat Remote API. Furhat exposes REST endpoints such as */furhat/say, /furhat/listen, /furhat/gesture, /furhat/attend, /furhat/voice*, etc. These endpoints allow the XState machine to fully control the robot from outside the Furhat system. Custom gestures were defined manually in TypeScript and sent to Furhat as JSON gesture definitions through the API ([Section 3.2](#32-gesture-generation) provides further details on gestures).
 
 To generate dynamic conversational responses, the project uses Ollama, an open-source tool for running LLMs locally. The chosen model is llama3.1, accessed via Ollama's HTTP API.
 
-Furhat supports several speech synthesis providers, including Microsoft Azure, Amazon Polly, Acapela, and ElevenLabs. I decided to work with Azure and Polly because Furhat Robotics provides built-in API credentials for these providers, which means the user does not need to authenticate or call these services directly. Instead, Furhat exposes all supported voices through its own REST endpoint (e.g., /furhat/voice?name=AriaNeural).
+Furhat supports several speech synthesis providers, including Microsoft Azure, Amazon Polly, Acapela, and ElevenLabs. I decided to work with Azure and Polly because Furhat Robotics provides built-in API credentials for these providers, which means the user does not need to authenticate or call these services directly. Instead, Furhat exposes all supported voices through its own REST endpoint (e.g., */furhat/voice?name=AriaNeural*).
 
 
-# 3. System components
+# 3. System Components
 
 ## 3.1. LLM Prompting Pipeline
 The first core component of the system is the prompting pipeline used to communicate with the LLM. The goal of this module is to take the user's input, pass it to the LLM along with a set of instructions, and obtain a structured response. This is implemented inside the *LLMActor*, using the *system* role.
 
-The instructions specify how the model should behave. They also indicate that the response should include one of several provided emotional tones (i.e., cheerful, sad, angry, etc) and that it must be returned as a JSON object of the following form:
+The instructions specify how the model should behave. They also indicate that the response should include one of several provided emotional tones (i.e., *cheerful, sad, angry*, etc) and that it must be returned as a JSON object of the following form:
 
 ```
 {
@@ -36,7 +36,7 @@ The instructions specify how the model should behave. They also indicate that th
 }
 ```
 
-This structure allows the rest of the system to automatically map the emotional tone label (voiceStyle) to the corresponding gesture and voice style.
+This structure allows the rest of the system to automatically map the emotional tone label (*voiceStyle*) to the corresponding gesture and voice style.
 
 An example output would be:
 
@@ -47,7 +47,7 @@ An example output would be:
 }
 ```
 
-Note that the list of emotional tones included in the prompt were not arbitrary, but they were specifically selected because they match the style tags supported by [Microsoft Azure neural voices](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/language-support?tabs=tts#voice-styles-and-roles) (i.e., en-US-AriaNeural supports *cheerful*, *sad*, *angry*, *excited*, etc).
+Note that the list of emotional tones included in the prompt were not arbitrary, but they were specifically selected because they match the style tags supported by [Microsoft Azure neural voices](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/language-support?tabs=tts#voice-styles-and-roles) (i.e., *en-US-AriaNeural* supports *cheerful*, *sad*, *angry*, *excited*, etc).
 
 Since the intention was to generate a wide range of expressive behaviors, I experimented with multiple versions of the system prompt. By testing these variations, I compared how each prompt affected the model's emotional range, output structure and consistency.
 
@@ -137,14 +137,14 @@ instructionsLLM3: `
 
 Although this approach initially produced more varied emotional outputs, it went back to mostly "friendly" after a few turns. Additionally, the model sometimes included text outside the required JSON format, unlike it was instructed to do. Nevertheless, this approach seemed to influence the model's behavior more strongly than the emotional-guideline version (approach 2).
 
-### Final choice:
+### Final choice
 
 Even though the baseline prompt (approach 1) produced the least emotional variation, it also generated the most stable and well-formatted responses. Since the rest of the system components depend on the correct JSON formatting in order to work properly, the first approach was chosen as the final version, but keeping in mind that emotional diversity remains limited unless the user provides explicit emotional cues (i.e.: "Answer in an optimistic, hopeful tone").
 
 
 ## 3.2. Gesture Generation
 
-The gestures used in this project are a mix of custom-made and built-in gestures. The custom-made gestures were designed to represent the different emotional tones that match the style tags supported by Microsft Azure (as introduced in [Section 3.1.](#31-llm-prompting-pipeline)). These gestures are created by combining parameters (LOOK_DOWN_LEFT, BROW_UP_LEFT, NECK_TILT, etc) from Furhat's [BasicParams library](https://docs.furhat.io/deprecated/remote-api#furhat-gesture:~:text=All%20BasicParams%20are%20listed%20here%3A). For example, combining SMILE_OPEN, EYE_SQUINT_LEFT, BROW_UP_LEFT, etc, helps create a cheerful expression. A total of 20 custom gestures were created, two for each emotional tone (e.g., *cheerfulGestureA*, *cheerfulGestureB*, *sadGestureA*, *sadGestureB*, etc). The actor *fhLLMGesture* calls the function *selectGestureByVoiceStyle()*, which takes the selected voice style (i.e., emotional tone) and randomly picks a corresponding gesture from the *emotionGestures* array.
+The gestures used in this project are a mix of custom-made and built-in gestures. The custom-made gestures were designed to represent the different emotional tones that match the style tags supported by Microsft Azure (as introduced in [Section 3.1.](#31-llm-prompting-pipeline)). These gestures are created by combining parameters (LOOK_DOWN_LEFT, BROW_UP_LEFT, NECK_TILT, etc) from Furhat's [BasicParams library](https://docs.furhat.io/deprecated/remote-api#gesturedefinition). For example, combining SMILE_OPEN, EYE_SQUINT_LEFT, BROW_UP_LEFT, etc, helps create a cheerful expression. A total of 20 custom gestures were created, two for each emotional tone (e.g., *cheerfulGestureA*, *cheerfulGestureB*, *sadGestureA*, *sadGestureB*, etc). The actor *fhLLMGesture* calls the function *selectGestureByVoiceStyle()*, which takes the selected voice style (i.e., emotional tone) and randomly picks a corresponding gesture from the *emotionGestures* array.
 
 In addition to these emotion-specific gestures, the system also uses a set of "universal gestures". These includes Furhat's built-in gestures (*Blink*, *BrowRaise*, *Smile*) as well as three additional custom gestures (*Happy*, *DoubleNod*, *GazeAway*). Universal gestures can be used interchangeably at any moment while Furhat is listening to the user and are not tied to a particular emotional tone. Their purpose is to make the interaction feel more natural by creating the illusion that the robot is actively attending rather than remaining still. This behavior is handled by the *fhUniversalGestures* actor, which selects a random universal gesture each time the robot enters the listening state.
 
@@ -165,7 +165,7 @@ This would ensure a consistent voice identity while still expressing a wide emot
 
 At this point, the first challenge arise: the Furhat documentation did not explain how to use Azure's voice styles through the Remote API, using Typescript. While the documentation states that Furhat supports Microsoft Azure and Amazon Polly TTS, all examples involving voice styles are written in Kotlin and seem to relate to the Skill SDK rather than the Remote API. It was therefore unclear whether Azure style tags are actually supported in a way accessible from Typescript.
 
-A second challenge involved setting the correct voice name. When using the *fhVoice()* function, the voice identifier in the format used by Azure's official documentation was initially passed (e.g., "en-US-AriaNeural"). However, Furhat's Remote API expects a different naming convention (e.g., "AriaNeural"), matching the labels shown in the Furhat web interface. Even though this was easy to fix, it still required trial and error because the documentation did not clarify it, which cost extra time.
+A second challenge involved setting the correct voice name. When using the *fhVoice()* function, the voice identifier in the format used by Azure's official documentation was initially passed (e.g., "*en-US-AriaNeural*"). However, Furhat's Remote API expects a different naming convention (e.g., "*AriaNeural*"), matching the labels shown in the Furhat web interface. Even though this was easy to fix, it still required trial and error because the documentation did not clarify it, which cost extra time.
 
 An alternative strategy was to use SSML (Speech Synthesis Markup Language) tags, which are supported by Amazon Polly. This would have involved embedding the LLM's response inside custom SSML tags, allowing control over speaking style, rate and pitch to match the each emotional tone. This approach is more time-consuming since it requires to manually design each tag. However, this strategy was ultimately discarded because Furhat's Remote API endpoint */furhat/say?text=* does not interpret SSML. Instead, it treats the SSML-tagged string literally as plain text. In practice, this means the Remote API cannot handle SSML directly and that SSML is only available within Skill SDK.
 
@@ -177,9 +177,9 @@ Finally, voice synthesis was the most technically challenging component of the p
 
 # 4. Implementation
 
-The system is implemented as a state machine that coordinates user detection, greeting, LLM calls, gesture generation, voice synthesis and conversation flow. Figure X illustrates the complete architecture, while the text below describes the behavior of each state and its actors.
+The system is implemented as a state machine that coordinates user detection, greeting, LLM calls, gesture generation, voice synthesis and conversation flow. A description of the behavior of each state and its actors is as follows:
 
-### 4.1. Start → GetUser
+### Start → GetUser
 
 The system begins in the *Start* state and transitions to *GetUser*. Here, the *fhGetUser* actor attempts to detect the user. 
 - onDone → transition to *Attend* state
@@ -187,16 +187,16 @@ The system begins in the *Start* state and transitions to *GetUser*. Here, the *
 
 This onDone/onError fallback logic appears throughout the state machine (*Attend, Greeting, LLMSpeaks*, etc).
 
-### 4.2. Attend
+### Attend
 
 In *Attend*, the *fhAttend* actor makes Furhat look at the user's position so that the interaction begins with proper attention.
 - onDone → transition to *Greeting* state
 
-### 4.3. Greeting
+### Greeting
 
 This state triggers the first interaction with the LLM. Before invoking the model, the state sets an initial messages list containing the system prompt (*instructionsLLM*) and a predefined user message instructing the LLM to start the conversation with a short greeting. Then the state invokes *LLMActor*, which returns a JSON object containing the LLM's response and its selected emotional tone. On success, the system saves the LLM's answer (*llmResponse*), the selected emotional tone (*llmVoiceStyle*) and appends the message to the running dialogue (*messages*). It later transitions to *LLMSpeaks*.
 
-### 4.4. LLMSpeaks
+### LLMSpeaks
 
 This state handles the robot's multimodal expression of the LLM's answer, that is, the corresponding gesture and voice. There are two child states:
 
@@ -216,7 +216,7 @@ Selected voice: *EmmaNeural*
 
 - onDone → transition to *Listen* state
 
-### 4.5. Listen
+### Listen
 
 This state listens to the user input while keeping Furhat expressive and responsive. It has two child states:
 
@@ -226,7 +226,7 @@ This state listens to the user input while keeping Furhat expressive and respons
 **Listening:**
 The *fhL* actor starts the speech recognizer. When the user speaks (onDone), it saves the captured text as *userInput* and append it to *messages* as a new user entry. Then, it transitions to *TestLLM*. 
 
-### 4.6. TestLLM
+### TestLLM
 
 This state evaluates the user's input and decides how the interaction continues. 
 
@@ -236,19 +236,19 @@ This creates the main interaction loop: *LLMSpeaks* → *Listen* → *TestLLM* �
 
 The recursion continues until the user ends the conversation or an error breaks the loop.
 
-### 4.7. Goodbye
+### Goodbye
 
 In this state, *fhTalkOriginal* generates a goodbye message spoken with Furhat's default voice.
 
 - onDone → transition to *Kiss* state
 
-### 4.8. Kiss
+### Kiss
 
 *fhKissing* plays a kiss gesture and sound effect to close the interaction in a playful way.
 
--onDone → transition to *End* state
+- onDone → transition to *End* state
 
-### 4.9. End
+### End
 
 This is the machine's final state which prints a last message ("End of the conversation").
 

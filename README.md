@@ -1,7 +1,7 @@
-# expressive_furhat
+# Feel it, say it, show it: emotionally expressive Furhat
 
-- Report: report.md
-- Description of the repo (TODO)
+**LT2319 - Dialogue Systems 2** course project exploring how to combine LLM-generated text with expressive speech and gestures on the Furhat robot. This repository includes the full implementation, report, and presentation materials.
+
 
 ## How to get started:
 
